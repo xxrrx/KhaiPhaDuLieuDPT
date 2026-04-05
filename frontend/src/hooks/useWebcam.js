@@ -16,10 +16,6 @@ export function useWebcam() {
         audio: false,
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-      }
       setIsActive(true);
       setPermissionStatus('granted');
     } catch (err) {
@@ -27,6 +23,14 @@ export function useWebcam() {
       setPermissionStatus('denied');
     }
   }, []);
+
+  // Gán srcObject sau khi <video> đã render (isActive=true)
+  useEffect(() => {
+    if (isActive && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [isActive]);
 
   const stopWebcam = useCallback(() => {
     if (streamRef.current) {

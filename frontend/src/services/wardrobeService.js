@@ -41,8 +41,8 @@ export const wardrobeService = {
     return res.data;
   },
 
-  async exportOutfit(id) {
-    const res = await api.post(`/wardrobe/outfits/${id}/export`);
+  async exportOutfit(id, body = {}) {
+    const res = await api.post(`/wardrobe/outfits/${id}/export`, body);
     return res.data;
   },
 };

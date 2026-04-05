@@ -27,9 +27,7 @@ export default function OutfitBuilder({ wardrobeItems = [], onCreated }) {
       const res = await wardrobeService.createOutfit({
         name: name.trim(),
         occasion,
-        product_ids: wardrobeItems
-          .filter((i) => selectedIds.includes(i.id))
-          .map((i) => i.product.id),
+        wardrobe_item_ids: selectedIds,
       });
       if (res.success) {
         toast.success('Đã tạo outfit!');

@@ -3,6 +3,7 @@ import { TrendingUp, BarChart2, Zap } from 'lucide-react';
 import TrendChart from '../components/trends/TrendChart';
 import TrendFilter from '../components/trends/TrendFilter';
 import ColorTrendCard from '../components/trends/ColorTrendCard';
+import StyleTrendCard from '../components/trends/StyleTrendCard';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { trendsService } from '../services/trendsService';
 
@@ -51,7 +52,19 @@ export default function TrendsPage() {
           <div>
             <h2 className="text-lg font-semibold text-white mb-4">Xu hướng hiện tại</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {trends.map((t) => <ColorTrendCard key={t.id} trend={t} />)}
+              {trends.map((t, i) =>
+                t.category === 'color' ? (
+                  <ColorTrendCard key={t.id} trend={t} />
+                ) : (
+                  <StyleTrendCard
+                    key={t.id}
+                    style={t.name_vn || t.name}
+                    score={t.score}
+                    change={t.change_pct != null ? `+${t.change_pct}%` : null}
+                    rank={i + 1}
+                  />
+                )
+              )}
             </div>
           </div>
 
