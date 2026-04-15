@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartFit Admin</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; }
+
+  /* Layout */
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar { width: 220px; background: #1a1a2e; color: #ccc; padding: 24px 0; flex-shrink: 0; }
+  .sidebar h1 { text-align: center; font-size: 18px; color: #fff; padding: 0 16px 24px; border-bottom: 1px solid #333; }
+  .sidebar nav a { display: block; padding: 12px 24px; color: #aaa; text-decoration: none; font-size: 14px; }
+  .sidebar nav a:hover, .sidebar nav a.active { background: #16213e; color: #fff; }
+  .main { flex: 1; padding: 28px; overflow-auto; }
+
+  /* Cards */
+  .card { background: #fff; border-radius: 10px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 20px; }
+  .card h2 { font-size: 16px; margin-bottom: 16px; color: #1a1a2e; }
+
+  /* Buttons */
+  .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+  .btn-primary { background: #4361ee; color: #fff; }
+  .btn-danger  { background: #e63946; color: #fff; }
+  .btn-success { background: #2a9d8f; color: #fff; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn:hover { opacity: .88; }
+
+  /* Form */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 13px; font-weight: 600; color: #555; }
+  input, select, textarea { padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; width: 100%; }
+  textarea { resize: vertical; min-height: 70px; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #f7f8fa; text-align: left; padding: 10px 12px; font-weight: 600; border-bottom: 2px solid #eee; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+  tr:hover td { background: #fafbff; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: #d1fae5; color: #065f46; }
+  .badge-red   { background: #fee2e2; color: #991b1b; }
+  img.thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; }
+
+  /* Upload zone */
+  .upload-zone { border: 2px dashed #cbd5e1; border-radius: 10px; padding: 30px; text-align: center; cursor: pointer; transition: background .2s; }
+  .upload-zone:hover { background: #f8faff; }
+  .upload-zone input { display: none; }
+  .preview-img { max-width: 180px; max-height: 180px; border-radius: 8px; margin: 10px auto; display: block; }
+
+  /* AI result box */
+  .ai-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px; font-size: 13px; margin-top: 12px; }
+  .ai-box span { font-weight: 700; color: #1d4ed8; }
+
+  /* Pagination */
+  .pagination { display: flex; gap: 8px; align-items: center; margin-top: 16px; }
+  .pagination button { padding: 6px 12px; border: 1px solid #ddd; background: #fff; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  .pagination button.active { background: #4361ee; color: #fff; border-color: #4361ee; }
+  .pagination button:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #fff; border-radius: 12px; padding: 28px; width: 680px; max-width: 95vw; max-height: 90vh; overflow-y: auto; position: relative; }
+  .modal-close { position: absolute; top: 14px; right: 18px; background: none; border: none; font-size: 22px; cursor: pointer; color: #888; }
+
+  .search-row { display: flex; gap: 10px; margin-bottom: 16px; }
+  .search-row input { flex: 1; }
+
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .page-header h2 { font-size: 20px; color: #1a1a2e; }
+
+  #toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a2e; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 14px; display: none; z-index: 999; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <h1>SmartFit Admin</h1>
+    <nav>
+      <a href="#" class="active" onclick="showPage('products')">Sản phẩm</a>
+      <a href="#" onclick="showPage('upload')">Upload & Phân loại</a>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- ── PRODUCTS PAGE ── -->
+    <div id="page-products">
+      <div class="page-header">
+        <h2>Quản lý sản phẩm</h2>
+        <button class="btn btn-primary" onclick="openCreateModal()">+ Thêm sản phẩm</button>
+      </div>
+
+      <div class="card">
+        <div class="search-row">
+          <input id="searchInput" type="text" placeholder="Tìm theo tên, thương hiệu..." onkeyup="debounceSearch()">
+          <button class="btn btn-primary" onclick="loadProducts(1)">Tìm</button>
+        </div>
+
+        <table id="productTable">
+          <thead>
+            <tr>
+              <th>Ảnh</th><th>Tên sản phẩm</th><th>Danh mục</th>
+              <th>Giá</th><th>Style</th><th>Trạng thái</th><th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="productBody"></tbody>
+        </table>
+
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </div>
+
+    <!-- ── UPLOAD PAGE ── -->
+    <div id="page-upload" style="display:none">
+      <div class="page-header"><h2>Upload ảnh & Phân loại AI</h2></div>
+
+      <div class="card">
+        <h2>1. Upload & phân loại</h2>
+        <div class="upload-zone" onclick="document.getElementById('classifyFile').click()">
+          <input type="file" id="classifyFile" accept="image/*" onchange="handleClassify(this)">
+          <p>Nhấn hoặc kéo ảnh vào đây</p>
+          <img id="classifyPreview" class="preview-img" style="display:none">
+        </div>
+        <div id="aiResult" class="ai-box" style="display:none"></div>
+        <div style="margin-top:14px; text-align:right">
+          <button class="btn btn-success" id="btnAddProduct" style="display:none" onclick="openCreateFromClassify()">
+            Thêm sản phẩm với ảnh này
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── PRODUCT MODAL ── -->
+<div class="modal-overlay" id="productModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <h2 id="modalTitle" style="margin-bottom:20px;font-size:17px;color:#1a1a2e">Thêm sản phẩm</h2>
+
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Ảnh sản phẩm</label>
+        <div class="upload-zone" onclick="document.getElementById('productImageFile').click()" style="padding:16px">
+          <input type="file" id="productImageFile" accept="image/*" onchange="handleProductImageUpload(this)">
+          <img id="productImagePreview" class="preview-img" style="display:none;width:100px;height:100px">
+          <p id="uploadHint">Nhấn để upload ảnh lên Cloudinary</p>
+        </div>
+        <input type="hidden" id="f_image_url">
+      </div>
+
+      <div class="form-group full">
+        <label>Tên sản phẩm *</label>
+        <input id="f_name" type="text" placeholder="VD: Áo phông basic trắng">
+      </div>
+      <div class="form-group">
+        <label>Thương hiệu</label>
+        <input id="f_brand" type="text" placeholder="VD: BasicWear">
+      </div>
+      <div class="form-group">
+        <label>Giá (VND) *</label>
+        <input id="f_price" type="number" min="0" step="1000" placeholder="199000">
+      </div>
+      <div class="form-group">
+        <label>Danh mục *</label>
+        <select id="f_category_id"></select>
+      </div>
+      <div class="form-group">
+        <label>Giới tính</label>
+        <select id="f_gender">
+          <option value="unisex">Unisex</option>
+          <option value="male">Nam</option>
+          <option value="female">Nữ</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Style</label>
+        <select id="f_style">
+          <option value="casual">Casual</option>
+          <option value="formal">Formal</option>
+          <option value="sport">Sport</option>
+          <option value="party">Party</option>
+          <option value="streetwear">Streetwear</option>
+          <option value="vintage">Vintage</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Màu chính</label>
+        <input id="f_primary_color" type="text" placeholder="VD: white, black, blue">
+      </div>
+      <div class="form-group">
+        <label>Mã màu HEX</label>
+        <input id="f_color_hex" type="color" value="#FFFFFF">
+      </div>
+      <div class="form-group">
+        <label>Chất liệu</label>
+        <input id="f_material" type="text" placeholder="Cotton 100%">
+      </div>
+      <div class="form-group">
+        <label>Size (phân cách bằng dấu phẩy)</label>
+        <input id="f_size_options" type="text" placeholder="S, M, L, XL">
+      </div>
+      <div class="form-group full">
+        <label>Mô tả</label>
+        <textarea id="f_description" placeholder="Mô tả sản phẩm..."></textarea>
+      </div>
+      <div class="form-group" id="f_available_group" style="display:none">
+        <label>Trạng thái</label>
+        <select id="f_is_available">
+          <option value="1">Đang bán</option>
+          <option value="0">Ngừng bán</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-top:20px; text-align:right; display:flex; gap:10px; justify-content:flex-end">
+      <button class="btn" onclick="closeModal()" style="background:#f0f0f0">Hủy</button>
+      <button class="btn btn-primary" onclick="saveProduct()">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = 'http://localhost:8001';
+let currentPage = 1;
+let editingId = null;
+let categories = [];
+let classifyImageUrl = null;
+let classifySuggestedCatId = null;
+let classifySuggestedStyle = null;
+let searchTimer = null;
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+window.onload = async () => {
+  await loadCategories();
+  await loadProducts(1);
+};
+
+function showPage(name) {
+  document.querySelectorAll('[id^="page-"]').forEach(el => el.style.display = 'none');
+  document.getElementById('page-' + name).style.display = 'block';
+  document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function toast(msg, ok = true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = ok ? '#1a1a2e' : '#e63946';
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2800);
+}
+
+// ── Categories ────────────────────────────────────────────────────────────────
+async function loadCategories() {
+  const res = await fetch(API + '/api/categories');
+  const json = await res.json();
+  categories = json.data || [];
+  const sel = document.getElementById('f_category_id');
+  sel.innerHTML = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+// ── Products ──────────────────────────────────────────────────────────────────
+function debounceSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => loadProducts(1), 400);
+}
+
+async function loadProducts(page = 1) {
+  currentPage = page;
+  const search = document.getElementById('searchInput').value;
+  const params = new URLSearchParams({ page, limit: 15 });
+  if (search) params.append('search', search);
+
+  const res = await fetch(API + '/api/products?' + params);
+  const json = await res.json();
+  const { items, total, total_pages } = json.data;
+
+  const tbody = document.getElementById('productBody');
+  tbody.innerHTML = items.map(p => `
+    <tr>
+      <td><img class="thumb" src="${p.image_url}" onerror="this.src='https://placehold.co/48'"></td>
+      <td><b>${p.name}</b><br><small style="color:#888">${p.brand || ''}</small></td>
+      <td>${p.cat_name || ''}</td>
+      <td>${Number(p.price).toLocaleString('vi-VN')}đ</td>
+      <td>${p.style || ''}</td>
+      <td><span class="badge ${p.is_available ? 'badge-green' : 'badge-red'}">${p.is_available ? 'Đang bán' : 'Ngừng bán'}</span></td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-primary btn-sm" onclick="openEditModal(${p.id})">Sửa</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})">Xóa</button>
+      </td>
+    </tr>
+  `).join('');
+
+  // Pagination
+  const pg = document.getElementById('pagination');
+  pg.innerHTML = `
+    <button onclick="loadProducts(${page - 1})" ${page <= 1 ? 'disabled' : ''}>&laquo;</button>
+    <span style="font-size:13px">Trang ${page} / ${total_pages} &nbsp;(${total} sản phẩm)</span>
+    <button onclick="loadProducts(${page + 1})" ${page >= total_pages ? 'disabled' : ''}>&raquo;</button>
+  `;
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function resetForm() {
+  ['f_name','f_brand','f_price','f_primary_color','f_material','f_size_options','f_description','f_image_url']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f_color_hex').value = '#FFFFFF';
+  document.getElementById('f_gender').value = 'unisex';
+  document.getElementById('f_style').value = 'casual';
+  document.getElementById('f_is_available').value = '1';
+  document.getElementById('f_category_id').selectedIndex = 0;
+  document.getElementById('productImagePreview').style.display = 'none';
+  document.getElementById('uploadHint').textContent = 'Nhấn để upload ảnh lên Cloudinary';
+  document.getElementById('f_available_group').style.display = 'none';
+}
+
+function openCreateModal() {
+  editingId = null;
+  resetForm();
+  document.getElementById('modalTitle').textContent = 'Thêm sản phẩm';
+  document.getElementById('productModal').classList.add('open');
+}
+
+function openCreateFromClassify() {
+  openCreateModal();
+  if (classifyImageUrl) {
+    document.getElementById('f_image_url').value = classifyImageUrl;
+    const prev = document.getElementById('productImagePreview');
+    prev.src = classifyImageUrl;
+    prev.style.display = 'block';
+    document.getElementById('uploadHint').textContent = 'Ảnh đã được upload';
+  }
+  if (classifySuggestedCatId) {
+    document.getElementById('f_category_id').value = classifySuggestedCatId;
+  }
+}
+
+async function openEditModal(id) {
+  editingId = id;
+  resetForm();
+  const res = await fetch(API + '/api/products/' + id);
+  const json = await res.json();
+  const p = json.data;
+
+  document.getElementById('modalTitle').textContent = 'Chỉnh sửa sản phẩm';
+  document.getElementById('f_name').value = p.name || '';
+  document.getElementById('f_brand').value = p.brand || '';
+  document.getElementById('f_price').value = p.price || '';
+  document.getElementById('f_primary_color').value = p.primary_color || '';
+  document.getElementById('f_color_hex').value = p.color_hex || '#FFFFFF';
+  document.getElementById('f_material').value = p.material || '';
+  document.getElementById('f_description').value = p.description || '';
+  document.getElementById('f_gender').value = p.gender || 'unisex';
+  document.getElementById('f_style').value = p.style || 'casual';
+  document.getElementById('f_is_available').value = p.is_available ? '1' : '0';
+  document.getElementById('f_category_id').value = p.category_id || p.cat_id || '';
+  document.getElementById('f_available_group').style.display = 'block';
+
+  const sizes = Array.isArray(p.size_options) ? p.size_options.join(', ') : (p.size_options || '');
+  document.getElementById('f_size_options').value = sizes;
+
+  if (p.image_url) {
+    document.getElementById('f_image_url').value = p.image_url;
+    const prev = document.getElementById('productImagePreview');
+    prev.src = p.image_url;
+    prev.style.display = 'block';
+    document.getElementById('uploadHint').textContent = 'Ảnh hiện tại';
+  }
+
+  document.getElementById('productModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('productModal').classList.remove('open');
+}
+
+// ── Upload ảnh cho form sản phẩm ──────────────────────────────────────────────
+async function handleProductImageUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  document.getElementById('uploadHint').textContent = 'Đang upload...';
+  const fd = new FormData();
+  fd.append('image', file);
+
+  try {
+    const res = await fetch(API + '/api/upload-image', { method: 'POST', body: fd });
+    const json = await res.json();
+    if (json.success) {
+      document.getElementById('f_image_url').value = json.data.url;
+      const prev = document.getElementById('productImagePreview');
+      prev.src = json.data.url;
+      prev.style.display = 'block';
+      document.getElementById('uploadHint').textContent = 'Upload thành công';
+      toast('Upload ảnh thành công');
+    }
+  } catch (e) {
+    document.getElementById('uploadHint').textContent = 'Upload thất bại';
+    toast('Upload thất bại', false);
+  }
+}
+
+// ── Save product ──────────────────────────────────────────────────────────────
+async function saveProduct() {
+  const name = document.getElementById('f_name').value.trim();
+  const price = document.getElementById('f_price').value;
+  const image_url = document.getElementById('f_image_url').value.trim();
+  const category_id = document.getElementById('f_category_id').value;
+
+  if (!name || !price || !image_url || !category_id) {
+    toast('Vui lòng điền đầy đủ: Tên, Giá, Ảnh, Danh mục', false);
+    return;
+  }
+
+  const sizesRaw = document.getElementById('f_size_options').value;
+  const sizes = sizesRaw ? JSON.stringify(sizesRaw.split(',').map(s => s.trim()).filter(Boolean)) : '[]';
+
+  const fd = new FormData();
+  fd.append('name', name);
+  fd.append('brand', document.getElementById('f_brand').value);
+  fd.append('price', price);
+  fd.append('description', document.getElementById('f_description').value);
+  fd.append('gender', document.getElementById('f_gender').value);
+  fd.append('style', document.getElementById('f_style').value);
+  fd.append('primary_color', document.getElementById('f_primary_color').value);
+  fd.append('color_hex', document.getElementById('f_color_hex').value);
+  fd.append('material', document.getElementById('f_material').value);
+  fd.append('category_id', category_id);
+  fd.append('size_options', sizes);
+  fd.append('image_url', image_url);
+  fd.append('is_available', document.getElementById('f_is_available').value);
+
+  const url = editingId ? `${API}/api/products/${editingId}` : `${API}/api/products`;
+  const method = editingId ? 'PUT' : 'POST';
+
+  const res = await fetch(url, { method, body: fd });
+  const json = await res.json();
+
+  if (json.success) {
+    toast(editingId ? 'Cập nhật thành công' : 'Thêm sản phẩm thành công');
+    closeModal();
+    loadProducts(currentPage);
+  } else {
+    toast('Lỗi khi lưu sản phẩm', false);
+  }
+}
+
+// ── Delete ────────────────────────────────────────────────────────────────────
+async function deleteProduct(id) {
+  if (!confirm('Xóa sản phẩm này?')) return;
+  const res = await fetch(API + '/api/products/' + id, { method: 'DELETE' });
+  const json = await res.json();
+  if (json.success) {
+    toast('Đã xóa sản phẩm');
+    loadProducts(currentPage);
+  }
+}
+
+// ── Classify ──────────────────────────────────────────────────────────────────
+async function handleClassify(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  // Preview
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('classifyPreview');
+    prev.src = e.target.result;
+    prev.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+
+  document.getElementById('aiResult').style.display = 'none';
+  document.getElementById('btnAddProduct').style.display = 'none';
+  classifyImageUrl = null;
+
+  // Upload + classify
+  const fd = new FormData();
+  fd.append('image', file);
+
+  try {
+    // Classify
+    const classRes = await fetch(API + '/api/classify', { method: 'POST', body: fd });
+    const classJson = await classRes.json();
+
+    // Also upload image
+    const fd2 = new FormData();
+    fd2.append('image', file);
+    const upRes = await fetch(API + '/api/upload-image', { method: 'POST', body: fd2 });
+    const upJson = await upRes.json();
+
+    if (upJson.success) classifyImageUrl = upJson.data.url;
+
+    const d = classJson.data;
+    classifySuggestedCatId = d.suggested_category_id;
+
+    const catName = categories.find(c => c.id == d.suggested_category_id)?.name || d.suggested_category_id;
+
+    document.getElementById('aiResult').innerHTML = `
+      AI phân loại: <span>${d.label}</span> &nbsp;|&nbsp;
+      Độ tin cậy: <span>${(d.confidence * 100).toFixed(1)}%</span> &nbsp;|&nbsp;
+      Danh mục gợi ý: <span>${catName}</span>
+      <br><small style="color:#64748b;margin-top:4px;display:block">Style sẽ để bạn tự chọn khi thêm sản phẩm</small>
+    `;
+    document.getElementById('aiResult').style.display = 'block';
+    document.getElementById('btnAddProduct').style.display = 'inline-block';
+  } catch (e) {
+    toast('Phân loại thất bại', false);
+  }
+}
+</script>
+</body>
+</html>

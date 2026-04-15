@@ -13,6 +13,9 @@ export default function SkinToneResult({ skinTone }) {
           <p className="text-zinc-400 text-sm mt-0.5">
             Màu sắc phù hợp: <span className="text-rose-300 font-medium">{COLOR_SEASON_LABELS[skinTone.color_season] || skinTone.color_season}</span>
           </p>
+          {skinTone.season_description && (
+            <p className="text-zinc-500 text-xs mt-1">{skinTone.season_description}</p>
+          )}
         </div>
       </div>
       <div className="mt-4">

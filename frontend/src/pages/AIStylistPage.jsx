@@ -10,9 +10,15 @@ import { aiStylistService } from '../services/aiStylistService';
 import { useToast } from '../hooks/useToast';
 import { OCCASION_OPTIONS } from '../utils/constants';
 
+const GENDER_OPTIONS = [
+  { value: 'female', label: 'Nữ' },
+  { value: 'male',   label: 'Nam' },
+];
+
 export default function AIStylistPage() {
   const [analysis, setAnalysis] = useState(null);
   const [occasion, setOccasion] = useState('casual');
+  const [gender, setGender] = useState('female');
   const [recommendations, setRecommendations] = useState(null);
   const [loadingRec, setLoadingRec] = useState(false);
   const [palettes, setPalettes] = useState([]);
@@ -21,10 +27,24 @@ export default function AIStylistPage() {
   const handleAnalysisResult = async (data) => {
     setAnalysis(data);
     setRecommendations(null);
-    // Load color palettes
+    // Load color palettes — pass detected season so all palettes are returned
+    // but the user's season is passed for highlight purposes
     try {
-      const res = await aiStylistService.getColorPalette();
-      if (res.success) setPalettes(res.data);
+      const detectedSeason = data?.skin_tone?.color_season || null;
+      const res = await aiStylistService.getColorPalette(null);
+      if (res.success) {
+        // Sort: detected season first
+        const sorted = detectedSeason
+          ? [
+              ...res.data.filter((p) => p.season === detectedSeason),
+              ...res.data.filter((p) => p.season !== detectedSeason),
+            ]
+          : res.data;
+        setPalettes(sorted.map((p) => ({
+          ...p,
+          isRecommended: p.season === detectedSeason,
+        })));
+      }
     } catch {}
   };
 
@@ -36,6 +56,7 @@ export default function AIStylistPage() {
         color_season: analysis.skin_tone?.color_season,
         body_shape: analysis.body_shape?.shape,
         occasion,
+        gender,
       });
       if (res.success) {
         setRecommendations(res.data);
@@ -96,9 +117,28 @@ export default function AIStylistPage() {
               </div>
             )}
 
-            {/* Occasion selector + recommend */}
+            {/* Occasion + Gender selector + recommend */}
             <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">Bước 2: Chọn dịp mặc</h2>
+              <h2 className="text-lg font-semibold text-white mb-4">Bước 2: Tuỳ chỉnh gợi ý</h2>
+
+              {/* Gender */}
+              <p className="text-sm text-zinc-400 mb-2">Giới tính</p>
+              <div className="flex gap-2 mb-5">
+                {GENDER_OPTIONS.map((g) => (
+                  <button
+                    key={g.value}
+                    onClick={() => { setGender(g.value); setRecommendations(null); }}
+                    className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+                      gender === g.value ? 'bg-violet-500 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
+                    }`}
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Occasion */}
+              <p className="text-sm text-zinc-400 mb-2">Dịp mặc</p>
               <div className="flex flex-wrap gap-2 mb-5">
                 {OCCASION_OPTIONS.map((o) => (
                   <button
@@ -112,6 +152,7 @@ export default function AIStylistPage() {
                   </button>
                 ))}
               </div>
+
               <Button onClick={handleRecommend} loading={loadingRec} className="gap-2">
                 <Sparkles size={15} />
                 Gợi ý outfit

@@ -75,12 +75,29 @@ def get_trends(
             )
             rows = cursor.fetchall()
             cursor.close()
+            normalized = []
             for r in rows:
-                r["recorded_at"] = str(r.get("recorded_at", ""))
+                normalized.append({
+                    "id": r["id"],
+                    "name": r.get("style") or r.get("color_name") or "",
+                    "name_vn": r.get("style") or r.get("color_name") or "",
+                    "category": r["category"],
+                    "score": round(float(r.get("popularity_score", 0)), 1),
+                    "change_pct": 0,
+                    "color": r.get("color_hex") or "#888888",
+                    "image_url": "",
+                    "season": r.get("season"),
+                    "year": r.get("year"),
+                    "age_group": r.get("age_group"),
+                    "gender": r.get("gender"),
+                    "region": r.get("region"),
+                    "data_source": r.get("data_source"),
+                    "recorded_at": str(r.get("recorded_at", "")),
+                })
             return {
                 "success": True,
                 "data": {
-                    "items": rows,
+                    "items": normalized,
                     "pagination": {"page": page, "limit": limit, "total": total, "total_pages": (total + limit - 1) // limit}
                 }
             }

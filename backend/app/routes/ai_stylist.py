@@ -58,12 +58,14 @@ def analyze(
             "skin_tone": {
                 "fitzpatrick_level": skin_result["fitzpatrick_level"],
                 "color_season": skin_result["color_season"],
+                "season_description": skin_result.get("season_description", ""),
                 "description": skin_result["description"],
                 "recommended_colors": skin_result["recommended_colors"],
             },
             "body_shape": {
                 "shape": body_result["body_shape"],
                 "description": body_result["description"],
+                "style_tips": body_result.get("style_tips", []),
             },
             "created_at": datetime.utcnow().isoformat() + "Z",
         }
@@ -81,38 +83,15 @@ def recommend(
     skin_tone = body.get("color_season", "Spring")
     body_shape = body.get("body_shape", "rectangle")
     occasion = body.get("occasion", "casual")
+    gender = body.get("gender", "female")  # 'male' | 'female'
+    if gender not in ("male", "female"):
+        gender = "female"
     preferences = body.get("preferences", {})
 
-    outfits = recommend_outfits(skin_tone, body_shape, occasion, preferences, db)
+    outfits = recommend_outfits(skin_tone, body_shape, occasion, gender, preferences, db)
 
-    # Try to fetch matching products from DB
-    product_suggestions = []
-    try:
-        cursor = db.cursor(dictionary=True)
-        cursor.execute(
-            """SELECT p.id, p.name, p.brand, p.price, p.image_url, p.primary_color, p.color_hex,
-                      c.name AS cat_name
-               FROM products p
-               JOIN categories c ON c.id = p.category_id
-               WHERE p.is_available = 1
-               ORDER BY RAND()
-               LIMIT 8"""
-        )
-        rows = cursor.fetchall()
-        cursor.close()
-        for r in rows:
-            product_suggestions.append({
-                "id": r["id"],
-                "name": r["name"],
-                "brand": r["brand"],
-                "price": float(r["price"]),
-                "image_url": r["image_url"],
-                "primary_color": r["primary_color"],
-                "color_hex": r["color_hex"],
-                "category": r["cat_name"],
-            })
-    except Exception:
-        pass
+    # product_suggestions: outfits already contains DB products
+    product_suggestions = outfits
 
     return {
         "success": True,
@@ -185,7 +164,7 @@ def color_palette(
     season: str = Query(None),
     current_user: dict = Depends(get_current_user),
 ):
-    from app.services.ai_service import COLOR_PALETTES
+    from app.services.ai_service import COLOR_PALETTES, SEASON_DESC
 
     if season and season in COLOR_PALETTES:
         palettes = {season: COLOR_PALETTES[season]}
@@ -203,6 +182,7 @@ def color_palette(
         result.append({
             "season": s,
             "season_vn": season_names.get(s, s),
+            "season_description": SEASON_DESC.get(s, ""),
             "colors": colors,
         })
 
