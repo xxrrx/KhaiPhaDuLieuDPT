@@ -10,8 +10,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import mysql.connector
-import cloudinary
-import cloudinary.uploader
 import json
 from app.config import DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
 

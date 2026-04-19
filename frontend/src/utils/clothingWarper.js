@@ -37,11 +37,11 @@ export function smoothRect(prev, next, alpha = 0.25) {
  * @param {Object} rh - rightHip      {x, y} normalized (0-1)
  * @param {number} cw - canvas width
  * @param {number} ch - canvas height
- * @param {Object} opts - { paddingX: 1.3, paddingTop: 0.1, paddingBottom: 0.15 }
+ * @param {Object} opts - { paddingX: 1.3, paddingTop: 0.5, paddingBottom: 0.15 }
  * @returns {{ x, y, w, h, angle }}
  */
 export function computeClothingRect(ls, rs, lh, rh, cw, ch, opts = {}) {
-  const { paddingX = 1.3, paddingTop = 0.12, paddingBottom = 0.15 } = opts;
+  const { paddingX = 1.3, paddingTop = 0.2, paddingBottom = 0.15 } = opts;
 
   // Tọa độ pixel (chú ý: landmarks có x normalized, cần mirror vì video bị flip)
   const lsx = (1 - ls.x) * cw;  const lsy = ls.y * ch;
@@ -201,14 +201,14 @@ export function computeClothingRectByType(type, landmarks, cw, ch) {
       // Áo: vai trái → vai phải → hông phải → hông trái
       const minVis = Math.min(ls?.visibility||0, rs?.visibility||0, lh?.visibility||0, rh?.visibility||0);
       if (minVis < 0.3) return null;
-      return computeClothingRect(ls, rs, lh, rh, cw, ch, { paddingX: 2.3, paddingTop: 0.15, paddingBottom: 0.18 });
+      return computeClothingRect(ls, rs, lh, rh, cw, ch, { paddingX: 2.35, paddingTop: 0.32, paddingBottom: 0.6 });
     }
 
     case CLOTHING_TYPES.JACKET: {
       // Áo khoác: giống áo nhưng rộng hơn 25%
       const minVis = Math.min(ls?.visibility||0, rs?.visibility||0, lh?.visibility||0, rh?.visibility||0);
       if (minVis < 0.3) return null;
-      return computeClothingRect(ls, rs, lh, rh, cw, ch, { paddingX: 1.9, paddingTop: 0.15, paddingBottom: 0.18 });
+      return computeClothingRect(ls, rs, lh, rh, cw, ch, { paddingX: 2.35, paddingTop: 0.32, paddingBottom: 0.6 });
     }
 
     case CLOTHING_TYPES.BOTTOM: {

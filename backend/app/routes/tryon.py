@@ -1,89 +1,10 @@
-from fastapi import APIRouter, Depends, UploadFile, File, Form, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException
 from mysql.connector.connection import MySQLConnection
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.services.cloudinary_service import upload_image, upload_base64_image, _validate_image
-import os, sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../..'))
+from app.services.cloudinary_service import upload_base64_image
 
 router = APIRouter(prefix="/tryon", tags=["Try-On"])
-
-
-@router.post("/upload")
-def tryon_upload(
-    user_photo: UploadFile = File(...),
-    product_id: int = Form(...),
-    current_user: dict = Depends(get_current_user),
-    db: MySQLConnection = Depends(get_db),
-):
-    # Validate
-    contents = user_photo.file.read()
-    _validate_image(contents, user_photo.content_type)
-
-    # Upload user photo
-    user_photo_result = upload_image(contents, folder="smartfit/tryon/users")
-    user_photo_url = user_photo_result["url"]
-
-    # Get product image
-    cursor = db.cursor(dictionary=True)
-    cursor.execute("SELECT id, image_url FROM products WHERE id = %s", (product_id,))
-    product = cursor.fetchone()
-    if not product:
-        cursor.close()
-        raise HTTPException(status_code=404, detail="Sản phẩm không tồn tại")
-
-    # Try-On via Replicate API (IDM-VTON)
-    import replicate, time
-    start = time.time()
-    try:
-        output = replicate.run(
-            "cuuupid/idm-vton:906425dbca90663ff5427624839572cc56ea7d380343d13e2a4c4b09d3f0c30f",
-            input={
-                "human_img": user_photo_url,
-                "garm_img": product["image_url"],
-                "garment_des": "clothing item",
-                "is_checked": True,
-                "is_checked_crop": False,
-                "denoise_steps": 30,
-                "seed": 42,
-            }
-        )
-        result_url = str(output) if isinstance(output, str) else str(output[0]) if output else user_photo_url
-    except Exception:
-        result_url = user_photo_url  # fallback
-
-    processing_time = round(time.time() - start, 2)
-
-    # Upload result to Cloudinary if it's a URL (not already cloudinary)
-    if result_url.startswith("http") and "cloudinary" not in result_url:
-        import requests
-        resp = requests.get(result_url, timeout=30)
-        if resp.ok:
-            uploaded = upload_image(resp.content, folder="smartfit/tryon/results")
-            result_url = uploaded["url"]
-
-    # Save to DB
-    cursor.execute(
-        """INSERT INTO try_on_history (user_id, product_id, user_photo_url, result_url, method, processing_time)
-           VALUES (%s, %s, %s, %s, 'upload', %s)""",
-        (current_user["id"], product_id, user_photo_url, result_url, processing_time)
-    )
-    db.commit()
-    history_id = cursor.lastrowid
-    cursor.close()
-
-    from datetime import datetime
-    return {
-        "success": True,
-        "data": {
-            "history_id": history_id,
-            "result_url": result_url,
-            "user_photo_url": user_photo_url,
-            "product_id": product_id,
-            "processing_time": processing_time,
-            "created_at": datetime.utcnow().isoformat() + "Z",
-        }
-    }
 
 
 @router.post("/save-ar-result", status_code=201)

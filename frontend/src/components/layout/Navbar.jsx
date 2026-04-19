@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingBag, Sparkles, Users, TrendingUp, BookOpen, Camera, Menu, X, LogOut, User } from 'lucide-react';
+import { ShoppingBag, Sparkles, TrendingUp, BookOpen, Camera, Menu, X, LogOut, User } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
 const navLinks = [
@@ -9,7 +9,6 @@ const navLinks = [
   { to: '/ai-stylist', label: 'AI Stylist', icon: Sparkles },
   { to: '/wardrobe', label: 'Tủ đồ', icon: BookOpen },
   { to: '/trends', label: 'Xu hướng', icon: TrendingUp },
-  { to: '/social', label: 'Cộng đồng', icon: Users },
 ];
 
 export default function Navbar() {

@@ -10,7 +10,6 @@ from app.routes.upload import router as upload_router
 from app.routes.tryon import router as tryon_router
 from app.routes.ai_stylist import router as ai_stylist_router
 from app.routes.wardrobe import router as wardrobe_router
-from app.routes.social import router as social_router
 from app.routes.trends import router as trends_router
 
 app = FastAPI(
@@ -36,7 +35,6 @@ app.include_router(upload_router, prefix=API_PREFIX)
 app.include_router(tryon_router, prefix=API_PREFIX)
 app.include_router(ai_stylist_router, prefix=API_PREFIX)
 app.include_router(wardrobe_router, prefix=API_PREFIX)
-app.include_router(social_router, prefix=API_PREFIX)
 app.include_router(trends_router, prefix=API_PREFIX)
 
 
