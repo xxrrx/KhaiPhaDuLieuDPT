@@ -222,11 +222,11 @@ def analyze_skin_tone(image_bytes: bytes) -> dict:
                 km = kmeans_data["kmeans"]
                 cluster = int(km.predict(avg_color)[0])
                 tone_labels = kmeans_data.get("tone_labels", TONE_LABELS)
-                tone_label = tone_labels[cluster % len(tone_labels)]
-                season_map = kmeans_data.get("season_map", {"Light": "Summer", "Medium": "Autumn", "Dark": "Winter"})
-                # Map label to tone class index
-                label_to_class = {"Light": 0, "Medium": 1, "Dark": 2}
-                tone_class = label_to_class.get(tone_label, 1)
+                # v2: dùng cluster_to_tone mapping (sắp xếp theo luminance khi training)
+                # Nếu pkl cũ không có key này thì fallback về index trực tiếp
+                cluster_to_tone = kmeans_data.get("cluster_to_tone", {0: 0, 1: 1, 2: 2})
+                tone_class = cluster_to_tone.get(cluster, 1)
+                tone_label = tone_labels[tone_class % len(tone_labels)]
                 logger.info(f"KMeans skin tone: {tone_label} → class {tone_class}")
             except Exception as e:
                 logger.warning(f"KMeans fallback failed: {e}")
