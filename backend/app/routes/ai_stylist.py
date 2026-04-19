@@ -18,9 +18,12 @@ def analyze(
     contents = photo.file.read()
     _validate_image(contents, photo.content_type)
 
-    # Upload photo
-    upload_result = upload_image(contents, folder="smartfit/analysis")
-    photo_url = upload_result["url"]
+    # Upload photo (optional – skip if Cloudinary is unavailable)
+    try:
+        upload_result = upload_image(contents, folder="smartfit/analysis")
+        photo_url = upload_result["url"]
+    except Exception:
+        photo_url = None
 
     # Run models
     skin_result = analyze_skin_tone(contents)
